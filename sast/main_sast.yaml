@@ -1,0 +1,38 @@
+name: SAST CI
+on:
+  push: 
+    branches: main 
+  
+permissions:
+  contents: read
+  security-events: write
+  issues: write
+
+jobs:
+  sast:
+    name: SAST checkout
+    runs-on: ubuntu-22.04
+    steps:
+      - name: 🛠️ Checkout do Código
+        uses: actions/checkout@v3
+        
+      - name: 📥 Install docker
+        run: |
+          sudo apt-get update
+          sudo apt install ./docker-desktop-amd64.deb
+          
+      - name: 🏗️ Verificar versão final do Docker instalada
+        run: docker --version
+
+      - name: Horusec
+        run: |
+          mkdir reports
+          docker run -v /var/run/docker.sock:/var/run/docker.sock -v $(pwd):/src/horusec horuszup/horusec-cli:latest horusec start -p /src/horusec -P $(pwd) -o='sarif' -O=/src/horusec/reports/horusec_report.sarif
+      
+      - name: Archive horusec report
+        uses: actions/upload-artifact@v4
+        with:
+          name: horusec_report
+          path: reports/horusec_report.sarif
+
+      
